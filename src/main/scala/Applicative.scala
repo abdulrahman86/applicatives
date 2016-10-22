@@ -83,6 +83,20 @@ object Validation{
 
 }
 
+case class Acc[O, A](value: O)
+
+object Acc {
+
+  implicit def accApplicative[O: Monoid] = new Applicative[({type f[X] = Acc[O, X]})#f] {
+
+    override def apply[A, B]: (Acc[O, (A) => B]) => (Acc[O, A]) => Acc[O, B] = acc1 => acc2 => {
+      Acc(implicitly[Monoid[O]].op(acc1.value, acc2.value))
+    }
+
+    override def unit[A]: (=> A) => Acc[O, A] = _ => Acc(implicitly[Monoid[O]].zero)
+  }
+}
+
 trait Traversable[F[_]] extends Functor[F] {
   def traverse[G[_]: Applicative, A, B](fa: F[A])(f: A => G[B])(implicit F:Functor[F]) =
     sequence(F.map(fa)(f))
@@ -92,6 +106,8 @@ trait Traversable[F[_]] extends Functor[F] {
 case class Tree[A](head: A, tail: List[Tree[A]])
 
 object Traversable {
+
+  import Acc._
 
   implicit object OptionTraversable extends Traversable[Option] {
     override def map[A, B]: (Option[A]) => ((A) => B) => Option[B] = ???
@@ -136,4 +152,10 @@ object Traversable {
 
     override def map[A, B]: (Tree[A]) => ((A) => B) => Tree[B] = implicitly[Functor[Tree]].map
   }
+
+  def accumulate[T[_]: Traversable, O: Monoid, A]: (A => O) => T[A] => O =
+    fao => ta =>
+      (implicitly[Traversable[T]].traverse[({type f[X] = Acc[O, X]})#f, A, O](ta)(a => Acc(fao(a)))).value
+
+//  def reduce[T[_]: Traversable, O: Monoid]: T[O] => O = to => accumulate[T, O, O](a => a)(to)
 }
