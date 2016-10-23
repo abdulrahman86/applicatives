@@ -1,4 +1,4 @@
-### Applicative Functors ###
+# Applicative Functors #
 
 * Applicative trait
 * Product and composition of applictaives
