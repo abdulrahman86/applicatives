@@ -28,7 +28,7 @@ trait Applicative[F[_]] extends Functor[F]{
 
   def product[A, B] : F[A] => F[B] => F[(A, B)] = fa => fb => map2(fa)(fb)((_ , _))
 
-  def product[G[_]](G: Applicative[G]) : Applicative[({type f[X] = (F[X], G[X])})#f] = {
+  def product[G[_]](implicit G: Applicative[G]) : Applicative[({type f[X] = (F[X], G[X])})#f] = {
 
     val self = this
 
@@ -157,5 +157,9 @@ object Traversable {
     fao => ta =>
       (implicitly[Traversable[T]].traverse[({type f[X] = Acc[O, X]})#f, A, O](ta)(a => Acc(fao(a)))).value
 
-//  def reduce[T[_]: Traversable, O: Monoid]: T[O] => O = to => accumulate[T, O, O](a => a)(to)
+  def reduce[T[_]: Traversable, O: Monoid]: T[O] => O = { to =>
+    // This forces the compiler to pass in the correct implicits
+    val accumulate_ = accumulate[T, O, O]
+    accumulate_(a => a)(to)
+  }
 }
