@@ -60,6 +60,19 @@ trait Applicative[F[_]] extends Functor[F]{
   })
 }
 
+object Applicative {
+
+  implicit def function1Applicative[IN] = new Applicative[({type f[OUT]= Function1[IN, OUT]})#f] {
+
+    override def apply[A, B]: ((IN) => (A) => B) => ((IN) => A) => (IN) => B =
+      inab => ina => {
+        in => (inab)(in)(ina(in))
+      }
+
+    override def unit[A]: (=> A) => (IN) => A = a => _ => a
+  }
+}
+
 sealed trait Validation[+E, + A]
 case class Failure[E](head: E, tail: Vector[E] = Vector()) extends Validation[E, Nothing]
 case class Success[A](value: A) extends Validation[Nothing, A]
