@@ -71,6 +71,14 @@ object Applicative {
 
     override def unit[A]: (=> A) => (IN) => A = a => _ => a
   }
+
+  implicit object StreamApplicative extends Applicative[Stream]{
+
+      override def apply[A, B]: (Stream[(A) => B]) => (Stream[A]) => Stream[B] =
+        sab => sa => Stream.apply(sab)(sa)
+
+      override def unit[A]: (=> A) => Stream[A] = a => Stream.constant(a)
+    }
 }
 
 sealed trait Validation[+E, + A]
