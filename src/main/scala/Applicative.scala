@@ -114,6 +114,49 @@ object Validation{
 
 }
 
+trait Pointed[+A]
+object Bottom extends Pointed[Nothing]
+case class Embedded[A](x: A) extends Pointed[A]
+
+object Pointed{
+
+  implicit def PointedMonoid[A](implicit ordA: Ord[A]) = new Monoid[Pointed[A]] {
+
+    override def op: (Pointed[A], Pointed[A]) => Pointed[A] = {
+      case (Bottom, Bottom) => Bottom
+      case (Bottom, x) => x
+      case (x, Bottom) => x
+      case (Embedded(a), Embedded(b)) => Embedded(ordA.max(a)(b))
+    }
+
+    override def zero: Pointed[A] = Bottom
+  }
+}
+
+case class Mighty(x: Boolean)
+
+object Mighty{
+
+  implicit object MightyMonoid extends Monoid[Mighty] {
+
+    override def op: (Mighty, Mighty) => Mighty = (a1, a2) => Mighty(a1.x || a2.x)
+
+    override def zero: Mighty = Mighty(false)
+  }
+}
+
+case class Musty(x: Boolean)
+
+object Musty{
+
+  implicit object MustyMonoid extends Monoid[Musty] {
+
+    override def op: (Musty, Musty) => Musty = (a, b) => Musty(a.x && b.x)
+
+    override def zero: Musty = Musty(true)
+  }
+}
+
 case class Acc[O, A](value: O)
 
 object Acc {
@@ -184,13 +227,36 @@ object Traversable {
     override def map[A, B]: (Tree[A]) => ((A) => B) => Tree[B] = implicitly[Functor[Tree]].map
   }
 
+  //icrush operator in "Functional Programming with Effects" paper
   def accumulate[T[_]: Traversable, O: Monoid, A]: (A => O) => T[A] => O =
     fao => ta =>
       (implicitly[Traversable[T]].traverse[({type f[X] = Acc[O, X]})#f, A, O](ta)(a => Acc(fao(a)))).value
 
+  //isum operator in "Functional Programming with Effects" paper
   def reduce[T[_]: Traversable, O: Monoid]: T[O] => O = { to =>
     // This forces the compiler to pass in the correct implicits
     val accumulate_ = accumulate[T, O, O]
     accumulate_(a => a)(to)
+  }
+
+  //find if predicate is true for any value in the traversable structure
+  def any[X, T[_]](f: X => Boolean)(in: T[X])(implicit trav: Traversable[T]): Boolean = {
+    val accumulate_ = accumulate[T, Mighty, X]
+    accumulate_(x => Mighty(f(x)))(in).x
+  }
+
+  //find if predicate is true for all values in the traversable structure
+  def all[X, T[_]](f: X => Boolean)(in: T[X])(implicit trav: Traversable[T]): Boolean = {
+    val accumulate_ = accumulate[T, Musty, X]
+    accumulate_(x => Musty(f(x)))(in).x
+  }
+
+  def max[X, T[_]](in: T[X])(implicit trav: Traversable[T], ord:Ord[X]): Option[X] = {
+    val accumulate_ = accumulate[T, Pointed[X], X]
+    accumulate_(x => Embedded[X](x))(in) match {
+      case Embedded(x)  => Some(x)
+      case Bottom => None
+    }
+
   }
 }

@@ -10,6 +10,9 @@
 ### Traversables ###
 * Traversable functors
 * Accumulator Applicatives to accumulate and reduce traversables containing monoids
+* any function to determine if predicate is true for any value in traversable structure
+* all function to determine if predicate is true for all values in traversable structure
+* max to find out max value in traversable structure that has ordered values 
 
 
 ### Papers ###
