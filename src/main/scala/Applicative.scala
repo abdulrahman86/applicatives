@@ -58,6 +58,13 @@ trait Applicative[F[_]] extends Functor[F]{
     m.foldLeft(unit(Map[K,V]()))((fm, tup) => {
     this.map2(fm)(tup._2)((m, v) => m + (tup._1 -> v))
   })
+
+  def liftMonoid[O](implicit monoidO: Monoid[O]): Monoid[F[O]] = new Monoid[F[O]] {
+
+    override def op: (F[O], F[O]) => F[O] = (fo1, fo2) => map2(fo1)(fo2)(monoidO.op(_, _))
+
+    override def zero: F[O] = unit(monoidO.zero)
+  }
 }
 
 object Applicative {

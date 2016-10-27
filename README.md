@@ -6,6 +6,7 @@
 * Product and composition of applictaives
 * Option, Function1 and Stream applicatives
 * Validation applicative for error aggregation
+* Applicative lifting monoid
 
 ### Traversables ###
 * Traversable functors
